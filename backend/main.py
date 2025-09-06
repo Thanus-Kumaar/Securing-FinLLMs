@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from app.db.base import Base
-from app.db.session import engine
-from app.routers import auth, employee
+from backend.db.base import Base
+from backend.db.session import engine
+from backend.routers import auth, employee
 
 # Create tables
 Base.metadata.create_all(bind=engine)
