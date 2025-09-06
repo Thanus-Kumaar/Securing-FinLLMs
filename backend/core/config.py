@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "your-super-secret-key"  # load from .env in prod

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from backend.schemas.employee import User, ActionRequest
-from backend.schemas.auth import TokenData
-from backend.core.security import auth_handler
+from schemas.employee import User, ActionRequest
+from schemas.auth import TokenData
+from core.security import auth_handler
 from fastapi.security import OAuth2PasswordBearer
 from typing import List
 

@@ -1,10 +1,10 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
-from backend.db.session import get_db
-from backend.db.models import Employee
-from backend.core.security import auth_handler
-from backend.schemas.auth import Token
+from db.session import get_db
+from db.models import Employee
+from core.security import auth_handler
+from schemas.auth import Token
 
 class AuthService:
     def __init__(self, db: Session = Depends(get_db)):
