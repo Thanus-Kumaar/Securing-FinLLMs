@@ -11,7 +11,6 @@ class AuthService:
         self.db = db
 
     def login(self, form_data: OAuth2PasswordRequestForm) -> Token:
-        # Expects the frontend to send password without hashing - I know this is a security concern, but jsut a small project, so =)
         employee = self.db.query(Employee).filter(Employee.username == form_data.username).first()
         if not employee or not auth_handler.verify_password(form_data.password, employee.hashed_password):
             raise HTTPException(
