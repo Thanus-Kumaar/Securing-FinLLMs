@@ -20,3 +20,10 @@ class IntentResponse(BaseModel):
     is_safe: bool
     confidence_score: float
     reasoning: Optional[str]
+
+class DelegationRequest(BaseModel):
+    user_token: str
+    intent: IntentResponse
+
+class DelegationResponse(BaseModel):
+    agent_token: str
