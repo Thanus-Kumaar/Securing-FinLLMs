@@ -6,7 +6,7 @@ It demonstrates secure authentication, role-based access control (RBAC), and dat
 ---
 
 ## 📂 Repository Structure
-
+```
 .
 ├── backend/                 # Python FastAPI backend
 │   ├── main.py              # Entry point (creates FastAPI app, includes routers)
@@ -39,7 +39,7 @@ It demonstrates secure authentication, role-based access control (RBAC), and dat
 │
 ├── .gitignore               # Files and folders Git should ignore
 └── README.md                # Project documentation (this file)
-
+```
 ---
 
 ## ⚙️ Setup Instructions
