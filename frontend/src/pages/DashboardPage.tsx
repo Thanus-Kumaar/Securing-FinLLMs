@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { AxiosError } from "axios";
 import { AuthService, EmployeeService } from "../api/services";
-import type { IntentResponse, DelegationRequest, ActionRequest, User } from "../api/types";
+import type {
+  IntentResponse,
+  DelegationRequest,
+  ActionRequest,
+  User,
+} from "../api/types";
 
 // Explicitly define the component's props with a type
 interface DashboardProps {
@@ -41,14 +46,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     setMessage("");
     try {
       const intentResponse = await AuthService.getIntent(prompt);
-      if (intentResponse.is_safe) {
-        setIntent(intentResponse);
-      } else {
+      // Always set the intent to display details
+      setIntent(intentResponse);
+
+      // If not safe, also show the safety warning
+      if (!intentResponse.is_safe) {
         setError(
           intentResponse.reasoning ||
-          "The intent was flagged as unsafe and cannot be processed."
+            "The intent was flagged as unsafe. Please review carefully before proceeding."
         );
-        setIntent(null);
       }
     } catch (err) {
       const axiosError = err as AxiosError<ApiErrorResponse>;
@@ -61,6 +67,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   };
 
   const handleConfirmAction = async () => {
+    // Prevent action if intent is not safe
+    if (intent && !intent.is_safe) {
+      setError(
+        "Cannot proceed with unsafe intent. Please modify your request."
+      );
+      return;
+    }
+
     setLoading(true);
     setError("");
     setMessage("");
@@ -95,7 +109,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     } catch (err) {
       const axiosError = err as AxiosError<ApiErrorResponse>;
       setError(
-        axiosError.response?.data?.detail || "Failed to perform the financial action."
+        axiosError.response?.data?.detail ||
+          "Failed to perform the financial action."
       );
     } finally {
       setLoading(false);
@@ -111,7 +126,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-50">
+      <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-50 px-4">
         Loading user data...
       </div>
     );
@@ -119,12 +134,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-50 p-4 sm:p-8">
-      <div className="w-full max-w-2xl p-8 space-y-8 bg-slate-900 shadow-xl rounded-lg border border-slate-800">
-        <div className="flex justify-between items-center">
-          <h2 className="text-3xl font-bold">FinLLM Dashboard</h2>
+      <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl p-6 sm:p-8 space-y-6 sm:space-y-8 bg-slate-900 shadow-xl rounded-lg border border-slate-800">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+          <h2 className="text-2xl sm:text-3xl font-bold">FinLLM Dashboard</h2>
           <button
             onClick={onLogout}
-            className="px-4 py-2 text-sm font-medium bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+            className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-200"
           >
             Logout
           </button>
@@ -138,12 +153,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         </div>
 
         {error && (
-          <div className="p-4 bg-red-900/50 text-red-400 rounded-lg">
+          <div className="p-3 sm:p-4 bg-red-900/50 text-red-400 rounded-lg text-sm sm:text-base">
             {error}
           </div>
         )}
         {message && (
-          <div className="p-4 bg-green-900/50 text-green-400 rounded-lg">
+          <div className="p-3 sm:p-4 bg-green-900/50 text-green-400 rounded-lg text-sm sm:text-base">
             {message}
           </div>
         )}
@@ -151,76 +166,125 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         {!intent ? (
           <form onSubmit={handlePromptSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-300">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
                 Enter a financial request for the agent:
               </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={4}
-                className="w-full p-3 mt-1 rounded-md bg-slate-800 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 rounded-md bg-slate-800 text-slate-50 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base resize-none"
                 placeholder="e.g., 'Transfer $100 from my checking account to savings.'"
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white font-medium py-2 rounded-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50"
+              className="w-full bg-blue-600 text-white font-medium py-3 sm:py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               disabled={loading}
             >
               {loading ? "Analyzing Intent..." : "Analyze Intent"}
             </button>
           </form>
         ) : (
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-yellow-300">
-              User Intent Confirmation
-            </h3>
-            <p className="text-slate-400">
-              The agent has parsed your request. Please confirm the details
-              before proceeding.
-            </p>
-            <div className="p-4 bg-slate-800 rounded-md space-y-2">
-              <p>
-                <strong>Action:</strong>{" "}
-                <span className="text-blue-400">{intent.action}</span>
-              </p>
-              <p>
-                <strong>Target:</strong>{" "}
-                <span className="text-blue-400">{intent.target || "N/A"}</span>
-              </p>
-              <p>
-                <strong>Amount:</strong>{" "}
-                <span className="text-blue-400">{intent.amount || "N/A"}</span>
-              </p>
-              <p>
-                <strong>Unit:</strong>{" "}
-                <span className="text-blue-400">{intent.unit || "N/A"}</span>
-              </p>
-              <p>
-                <strong>Confidence:</strong>{" "}
-                <span className="text-blue-400">
-                  {(intent.confidence_score * 100).toFixed(2)}%
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex items-center space-x-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-yellow-300">
+                User Intent Analysis
+              </h3>
+              {!intent.is_safe && (
+                <span className="px-2 py-1 text-xs bg-red-900/50 text-red-300 rounded-full border border-red-700">
+                  ⚠️ Unsafe
                 </span>
-              </p>
-              <p>
-                <strong>Reasoning:</strong>{" "}
-                <span className="text-slate-300 italic">
-                  {intent.reasoning}
+              )}
+              {intent.is_safe && (
+                <span className="px-2 py-1 text-xs bg-green-900/50 text-green-300 rounded-full border border-green-700">
+                  ✓ Safe
                 </span>
-              </p>
+              )}
             </div>
-            <div className="flex space-x-4">
+
+            <p className="text-sm sm:text-base text-slate-400">
+              The agent has parsed your request. Please review the details
+              carefully
+              {!intent.is_safe && " and note the safety concerns"} before
+              proceeding.
+            </p>
+
+            <div className="p-4 bg-slate-800 rounded-md space-y-3 border border-slate-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm sm:text-base">
+                <div>
+                  <span className="text-slate-400">Action:</span>{" "}
+                  <span className="text-blue-400 font-medium">
+                    {intent.action}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Target:</span>{" "}
+                  <span className="text-blue-400 font-medium">
+                    {intent.target || "N/A"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Amount:</span>{" "}
+                  <span className="text-blue-400 font-medium">
+                    {intent.amount || "N/A"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Unit:</span>{" "}
+                  <span className="text-blue-400 font-medium">
+                    {intent.unit || "N/A"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-700">
+                <div className="mb-2">
+                  <span className="text-slate-400">Confidence:</span>{" "}
+                  <span
+                    className={`font-medium ${
+                      intent.confidence_score >= 0.8
+                        ? "text-green-400"
+                        : intent.confidence_score >= 0.6
+                        ? "text-yellow-400"
+                        : "text-red-400"
+                    }`}
+                  >
+                    {(intent.confidence_score * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Analysis:</span>
+                  <p className="text-slate-300 italic text-sm mt-1 leading-relaxed">
+                    {intent.reasoning}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               <button
                 onClick={handleConfirmAction}
-                className="flex-1 bg-green-600 text-white font-medium py-2 rounded-md hover:bg-green-700 transition-colors duration-200 disabled:opacity-50"
-                disabled={loading}
+                className={`flex-1 font-medium py-3 sm:py-2 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base ${
+                  intent.is_safe
+                    ? "bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                    : "bg-gray-600 text-gray-300 cursor-not-allowed"
+                }`}
+                disabled={loading || !intent.is_safe}
+                title={
+                  !intent.is_safe ? "Cannot proceed with unsafe intent" : ""
+                }
               >
-                {loading ? "Confirming..." : "Confirm Action"}
+                {loading
+                  ? "Processing..."
+                  : intent.is_safe
+                  ? "Confirm Action"
+                  : "Action Blocked"}
               </button>
               <button
                 onClick={handleCancel}
-                className="flex-1 bg-gray-600 text-white font-medium py-2 rounded-md hover:bg-gray-700 transition-colors duration-200"
+                className="flex-1 bg-gray-600 text-white font-medium py-3 sm:py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-200 disabled:opacity-50 text-sm sm:text-base"
                 disabled={loading}
               >
                 Cancel
