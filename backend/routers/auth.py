@@ -12,12 +12,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), auth_service: AuthSe
     return auth_service.login(form_data)
 
 @router.post("/intent", response_model=IntentResponse)
-def get_user_intent(request: IntentRequest, intent_service: IntentService = Depends()):
+async def get_user_intent(request: IntentRequest, intent_service: IntentService = Depends()):
     """
     Analyzes a user's prompt using an external LLM to extract a structured intent.
     This serves as the User Intent Confirmation (UIC) component.
     """
-    return intent_service.get_intent_from_prompt(request.prompt)
+    return await intent_service.get_intent_from_prompt(request.prompt)
 
 @router.post("/delegate", response_model=DelegationResponse)
 def create_agent_token(
@@ -37,12 +37,11 @@ def create_agent_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot delegate token for an unsafe intent."
         )
-    
+
     # Generate the agent token with restricted scope
     agent_token = auth_service.delegate_token(
         username=current_employee_payload.get("sub"),
         roles=current_employee_payload.get("roles"),
         intent=request.intent
     )
-
     return DelegationResponse(agent_token=agent_token)

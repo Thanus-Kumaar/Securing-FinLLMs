@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     JWT_EXPIRY_MINUTES: int = 10
     DATABASE_URL: str = "sqlite:///./financial_app.db"
     SERVER_ID: str = "trusted_FinLLM_server_1975"
-    GOOGLE_GEMINI_API_KEY: str = "your-google-gemini-api-key"
+    GOOGLE_GEMINI_API_KEY: str
 
     class Config:
         env_file = ".env"
