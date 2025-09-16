@@ -1,96 +1,45 @@
-// src/pages/LoginPage.tsx
-import React, { useState, useEffect } from 'react';
-import { AuthService, EmployeeService } from '../api/services';
-import type { User } from '../api/types';
+import React, { useState } from "react";
+import { AuthService } from "../api/services";
+import type { AxiosError } from "axios";
 
-const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+// Define the component's props with a type
+interface LoginPageProps {
+  onLogin: () => void;
+}
 
-  // On mount, check for an existing token
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const currentUser = await EmployeeService.getCurrentUser();
-          setUser(currentUser);
-          setIsLoggedIn(true);
-        } catch (err) {
-          console.error('Failed to re-authenticate:', err);
-          localStorage.removeItem('access_token');
-        }
-      }
-      setLoading(false);
-    };
-    checkAuth();
-  }, []);
+const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
 
     const formData = new FormData();
-    formData.append('username', username);
-    formData.append('password', password);
+    formData.append("username", username);
+    formData.append("password", password);
 
     try {
       const token = await AuthService.login(formData);
-      localStorage.setItem('access_token', token.access_token);
-      setMessage('Login successful!');
-      const currentUser = await EmployeeService.getCurrentUser();
-      setUser(currentUser);
-      setIsLoggedIn(true);
-    } catch (err: any) {
-      setError(err?.detail || 'Login failed. Please check your credentials.');
+      localStorage.setItem("access_token", token.access_token);
+      setMessage("Login successful!");
+      onLogin(); // Call the parent function to update auth state
+    } catch (err) {
+      const axiosError = err as AxiosError<{ detail: string }>;
+      setError(
+        axiosError.response?.data?.detail ||
+          "Login failed. Please check your credentials."
+      );
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    setIsLoggedIn(false);
-    setUser(null);
-    setMessage('Logged out successfully.');
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-50">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-  }
-
-  if (isLoggedIn) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-50">
-        <div className="w-full max-w-md p-8 space-y-6 bg-slate-900 shadow-xl rounded-lg">
-          <h2 className="text-3xl font-bold text-center">
-            Welcome, {user?.username}!
-          </h2>
-          <p className="text-center text-slate-400">
-            You are successfully authenticated. Your session is active.
-          </p>
-          <button
-            onClick={handleLogout}
-            className="w-full bg-red-600 text-white font-medium py-2 rounded-md hover:bg-red-700 transition-colors duration-200"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-50">
@@ -102,9 +51,15 @@ const LoginPage: React.FC = () => {
           </p>
         </div>
 
-        {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+        {error && (
+          <div className="p-4 bg-red-900/50 text-red-400 rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
         {message && (
-          <div className="text-green-400 text-sm text-center">{message}</div>
+          <div className="p-4 bg-green-900/50 text-green-400 rounded-lg text-sm text-center">
+            {message}
+          </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -133,7 +88,7 @@ const LoginPage: React.FC = () => {
             className="w-full bg-blue-600 text-white font-medium py-2 rounded-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50"
             disabled={loading}
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 

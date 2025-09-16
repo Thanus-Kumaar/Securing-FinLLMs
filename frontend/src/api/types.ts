@@ -39,7 +39,7 @@ export interface User {
 
 export interface ActionRequest {
   action: string;
-  amount: number;
-  account_id: string;
+  amount: number | null;
+  account_id: string | null;
   description?: string | null;
 }
