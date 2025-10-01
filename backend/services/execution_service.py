@@ -1,5 +1,5 @@
 import os
-import base64 # NEW IMPORT
+import base64
 from typing import Dict, Any, List
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
@@ -7,12 +7,6 @@ from jose import jwt, JWTError
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 
 # Import core security and audit components
-# NOTE: Assuming you rename your friend's core files or update imports later:
-# from core.acl import log_event 
-# from core.atv import load_private_key, load_public_key, sign_request, verify_signature
-# from core.ldg import ldg_input_check, detect_prompt_injection, ldg_output_check
-
-# Temporarily using local names based on your original import style
 from core.acl import log_event 
 from core.atv import load_private_key, load_public_key, sign_request, verify_signature
 from core.ldg import ldg_input_check, detect_prompt_injection, ldg_output_check
@@ -41,7 +35,6 @@ class ExecutionService:
     def _validate_agent_token(self, agent_token: str) -> AgentTokenClaims:
         """
         Validates the agent's restricted JWT and extracts key delegation claims.
-        FIX: Decodes Base64-encoded delegation scope to safely extract action:target.
         """
         try:
             # 1. Decode and verify the token signature
@@ -54,7 +47,6 @@ class ExecutionService:
             roles: List[str] = payload.get("roles", [])
             
             # 2. Extract the specific delegated scope (action:target)
-            # Find the element that contains the encoded scope (e.g., 'scope_data=...')
             scope_claim = next((r for r in roles if r.startswith("scope_data=")), None)
             
             if not scope_claim:
@@ -90,8 +82,8 @@ class ExecutionService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired Agent Delegation Token."
             )
-        except (ValueError, IndexError, TypeError, base64.binascii.Error) as e:
-            # Catch all parsing and decoding errors gracefully
+        except (ValueError, IndexError, TypeError, base64.binascii.Error):
+            # Catches all parsing and decoding errors gracefully
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Malformed Agent Token. Delegation scope is unreadable."
@@ -109,10 +101,8 @@ class ExecutionService:
         
         # 1. Validate Agent Token and Delegation Scope
         claims = self._validate_agent_token(agent_token)
-        
-        # The agent's token is built on the confirmed intent, so we treat the action request 
-        # as the input provided by the agent to the system.
-        user_input = f"{claims.action} {claims.target} for {request.amount}" 
+        amount_str = str(request.amount) if request.amount is not None else "N/A"
+        user_input = f"Action:{claims.action} Target:{claims.target} Amount:{amount_str}"
 
         # --- SECURITY GATEWAY (LDG - Input) ---
         # 2. Input Sanitize (PII Masking, Entity Recognition)
@@ -142,7 +132,7 @@ class ExecutionService:
 
         # --- FCA (Simulated LLM Agent Execution) ---
         # In a real system, this would be the call to the actual LLM API.
-        agent_response = f"FCA: Successfully executed '{claims.action}' for user {claims.sub}. Signed message verified: {valid}"
+        agent_response = f"FCA: Successfully executed '{claims.action}' for user {claims.sub} on target '{claims.target}'. Signed message verified: {valid}"
 
         # --- SECURITY GATEWAY (LDG - Output) ---
         # 6. Output Sanitization Check

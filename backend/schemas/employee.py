@@ -5,3 +5,5 @@ class User(BaseModel):
 
 class ActionRequest(BaseModel):
     action: str
+    account_id: str
+    amount: int

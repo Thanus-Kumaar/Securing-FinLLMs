@@ -11,6 +11,12 @@ import type {
 } from "./types";
 import type { AxiosResponse } from "axios";
 
+interface ExecutionResponse {
+    response: string; 
+    event_id: number; 
+    status: string; 
+}
+
 // --- Authentication Service ---
 export const AuthService = {
   // POST to /auth/login
@@ -58,13 +64,13 @@ export const EmployeeService = {
   performAction: async (
         agentToken: string, 
         request: ActionRequest
-    ): Promise<{ message: string; event_id: number }> => {
+    ): Promise<ExecutionResponse> => {
         
         // FIX: Create a clean, temporary Axios instance that does NOT rely on the 
         // global interceptor's token, ensuring only the agentToken is sent.
         const agentAPI = axios.create({ baseURL: BASE_URL });
 
-        const response: AxiosResponse<{ message: string; event_id: number }> = 
+        const response: AxiosResponse<ExecutionResponse> = 
             await agentAPI.post(
                 '/agent/execute', 
                 request, 

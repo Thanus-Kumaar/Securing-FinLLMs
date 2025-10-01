@@ -102,10 +102,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         amount: intent.amount,
         account_id: intent.target,
       };
-      console.log("Delegate token: ", agentToken);
+      console.log("Delegate token: ", agentToken)
       const actionResponse = await EmployeeService.performAction(agentToken, actionRequest);
 
-      setMessage(actionResponse.message);
+      setMessage(actionResponse.response);
       setIntent(null); // Reset intent after action
     } catch (err) {
       const axiosError = err as AxiosError<ApiErrorResponse>;
