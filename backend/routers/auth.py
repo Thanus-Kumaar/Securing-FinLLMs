@@ -6,6 +6,8 @@ from schemas.auth import Token, IntentRequest, IntentResponse, DelegationRequest
 from core.security import get_current_employee, auth_handler
 from typing import List
 from services.intent_service import ROLE_ACTION_MAP
+from core.malicious_patterns import MALICIOUS_PATTERNS
+import re
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -23,6 +25,15 @@ async def get_user_intent(
     Analyzes a user's prompt using an external LLM to extract a structured intent.
     This serves as the User Intent Confirmation (UIC) component.
     """
+    # --- NEW SECURITY LAYER: Prompt Injection Pre-filter ---
+    for category, patterns in MALICIOUS_PATTERNS.items():
+        for pattern in patterns:
+            if re.search(pattern, request.prompt.lower()):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Prompt rejected by security filter due to potential injection: {pattern}"
+                )
+
     user_roles = current_employee_payload.get("roles", [])
     return await intent_service.get_intent_from_prompt(request.prompt, user_roles)
 
