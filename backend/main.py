@@ -2,12 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.base import Base
 from db.session import engine, get_db
-from routers import auth, employee
+from routers import auth, employee, agent
 from db.models import Employee
 from core.security import auth_handler
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
+
+# NEW: Import ACL initialization function
+from core.acl import init_db # Assuming acl.py is accessible in the Python path
 
 # Hardcoded data for a simple prototype.
 mock_employees = [
@@ -30,22 +33,29 @@ def create_initial_users(db: Session):
 # The new lifespan event handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # This code runs on application startup
+    # --- STARTUP LOGIC ---
+    # 1. Initialize the Encrypted Audit Ledger DB (acl.db)
+    init_db()
+    
+    # 2. Initialize the main application DB (SQLAlchemy)
     Base.metadata.create_all(bind=engine)
+    
+    # 3. Create initial users if DB is empty
     db = next(get_db())
     try:
         create_initial_users(db)
     finally:
         db.close()
+    
     yield
-    # This code runs on application shutdown
+    # --- SHUTDOWN LOGIC (None currently) ---
 
 app = FastAPI(title="FinLLM Authorization Framework", lifespan=lifespan)
 
 # For development only - allows all origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],     # Allow all origins (development only!)
+    allow_origins=["*"], # Allow all origins (development only!)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,3 +64,4 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(employee.router)
+app.include_router(agent.router)

@@ -1,0 +1,26 @@
+{
+    "input_keywords": ["delete all", "drop table", "shutdown system", "ignore ldg"],
+    "output_keywords": ["classified"],
+
+    "input_patterns": [
+      "\\b\\d{16}\\b",                       
+      "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",
+      "\\b\\d{10}\\b"                           
+    ],
+    "prompt_injection_patterns": [
+      "ignore previous instructions",
+      "disregard safety rules",
+      "pretend to be system",
+      "override restrictions","ignore", "bypass", "forget previous", "system prompt"
+    ],
+    "output_patterns": [
+      "password",
+      "api[_-]?key",
+      "secret",
+      "ssn"
+    ]
+  }
+  
+
+  
+   

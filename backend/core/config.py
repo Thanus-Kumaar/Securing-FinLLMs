@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./financial_app.db"
     SERVER_ID: str = "trusted_FinLLM_server_1975"
     GOOGLE_GEMINI_API_KEY: str
+    KEY_PASSPHRASE: str
+    DB_ENCRYPTION_KEY: str
 
     class Config:
         env_file = ".env"
