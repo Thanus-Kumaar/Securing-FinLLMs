@@ -1,4 +1,5 @@
-import API from './index';
+import axios from "axios";
+import API, { BASE_URL } from "./index";
 import type {
   Token,
   IntentRequest,
@@ -6,29 +7,41 @@ import type {
   DelegationRequest,
   DelegationResponse,
   User,
-  ActionRequest
-} from './types';
-import type { AxiosResponse } from 'axios';
+  ActionRequest,
+} from "./types";
+import type { AxiosResponse } from "axios";
 
 // --- Authentication Service ---
 export const AuthService = {
   // POST to /auth/login
   login: async (formData: FormData): Promise<Token> => {
-    const response: AxiosResponse<Token> = await API.post('/auth/login', formData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
+    const response: AxiosResponse<Token> = await API.post(
+      "/auth/login",
+      formData,
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
+    );
     return response.data;
   },
 
   // POST to /auth/intent
   getIntent: async (prompt: string): Promise<IntentResponse> => {
-    const response: AxiosResponse<IntentResponse> = await API.post('/auth/intent', { prompt });
+    const response: AxiosResponse<IntentResponse> = await API.post(
+      "/auth/intent",
+      { prompt }
+    );
     return response.data;
   },
 
   // POST to /auth/delegate
-  delegateToken: async (request: DelegationRequest): Promise<DelegationResponse> => {
-    const response: AxiosResponse<DelegationResponse> = await API.post('/auth/delegate', request);
+  delegateToken: async (
+    request: DelegationRequest
+  ): Promise<DelegationResponse> => {
+    const response: AxiosResponse<DelegationResponse> = await API.post(
+      "/auth/delegate",
+      request
+    );
     return response.data;
   },
 };
@@ -37,13 +50,32 @@ export const AuthService = {
 export const EmployeeService = {
   // GET to /employee/me
   getCurrentUser: async (): Promise<User> => {
-    const response: AxiosResponse<User> = await API.get('/employee/me');
+    const response: AxiosResponse<User> = await API.get("/employee/me");
     return response.data;
   },
 
-  // POST to /employee/financial-action
-  performAction: async (request: ActionRequest): Promise<{ message: string }> => {
-    const response: AxiosResponse<{ message: string }> = await API.post('/employee/financial-action', request);
-    return response.data;
-  },
+  // POST to /agent/execute (Uses agentToken directly in header)
+  performAction: async (
+        agentToken: string, 
+        request: ActionRequest
+    ): Promise<{ message: string; event_id: number }> => {
+        
+        // FIX: Create a clean, temporary Axios instance that does NOT rely on the 
+        // global interceptor's token, ensuring only the agentToken is sent.
+        const agentAPI = axios.create({ baseURL: BASE_URL });
+
+        const response: AxiosResponse<{ message: string; event_id: number }> = 
+            await agentAPI.post(
+                '/agent/execute', 
+                request, 
+                {
+                    // Explicitly set the Authorization header with the agentToken
+                    headers: { 
+                        Authorization: `Bearer ${agentToken}`,
+                        'Content-Type': 'application/json' 
+                    },
+                }
+            );
+        return response.data;
+    },
 };

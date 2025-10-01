@@ -102,7 +102,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         amount: intent.amount,
         account_id: intent.target,
       };
-      const actionResponse = await EmployeeService.performAction(actionRequest);
+      console.log("Delegate token: ", agentToken);
+      const actionResponse = await EmployeeService.performAction(agentToken, actionRequest);
 
       setMessage(actionResponse.message);
       setIntent(null); // Reset intent after action

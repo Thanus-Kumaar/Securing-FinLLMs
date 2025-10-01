@@ -1,6 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import type { Token } from './types';
 
+export const BASE_URL = 'http://127.0.0.1:8000'; 
+
 // Create a reusable Axios instance with a base URL
 const API = axios.create({
   baseURL: 'http://127.0.0.1:8000', // Update this to your backend URL
