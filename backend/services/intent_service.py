@@ -11,7 +11,7 @@ from typing import List
 genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
 
 # Use the latest Generative Model for the API
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # Define a detailed system prompt to instruct the AI on its task
 SYSTEM_PROMPT = """

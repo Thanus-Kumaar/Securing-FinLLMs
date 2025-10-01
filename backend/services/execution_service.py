@@ -1,5 +1,5 @@
 import os
-import time
+import base64 # NEW IMPORT
 from typing import Dict, Any, List
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
@@ -7,22 +7,24 @@ from jose import jwt, JWTError
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 
 # Import core security and audit components
-from core.acl import log_event
+# NOTE: Assuming you rename your friend's core files or update imports later:
+# from core.acl import log_event 
+# from core.atv import load_private_key, load_public_key, sign_request, verify_signature
+# from core.ldg import ldg_input_check, detect_prompt_injection, ldg_output_check
+
+# Temporarily using local names based on your original import style
+from core.acl import log_event 
 from core.atv import load_private_key, load_public_key, sign_request, verify_signature
 from core.ldg import ldg_input_check, detect_prompt_injection, ldg_output_check
 from schemas.employee import ActionRequest # Used for input validation
 
-# --- Initialization of Cryptographic Keys and State ---
-# This mirrors the setup logic from your friend's original app.py, 
-# ensuring keys are loaded only once.
+# --- Initialization of Cryptographic Keys and State (UNCHANGED) ---
 try:
     # NOTE: The keys must be generated and stored in a 'keys/' directory
-    # The passphrase and encryption key are assumed to be loaded via dotenv in main.py
     PRIVATE_KEY: RSAPrivateKey = load_private_key("keys/private_key.pem", passphrase=os.getenv("KEY_PASSPHRASE"))
     PUBLIC_KEY: RSAPublicKey = load_public_key("keys/public_key.pem")
     print("ATV: RSA keys loaded successfully.")
 except Exception as e:
-    # Fail fast if keys are missing or invalid
     raise RuntimeError(f"Failed to load cryptographic keys (ATV): {e}")
 
 # Simple structure to store required claims for agent token validation
@@ -34,13 +36,12 @@ class AgentTokenClaims(BaseModel):
 
 class ExecutionService:
     def __init__(self):
-        # We don't use FastAPI Depends here, as this service is instantiated
-        # directly in the router and uses globally loaded keys/logging functions.
         pass
 
     def _validate_agent_token(self, agent_token: str) -> AgentTokenClaims:
         """
         Validates the agent's restricted JWT and extracts key delegation claims.
+        FIX: Decodes Base64-encoded delegation scope to safely extract action:target.
         """
         try:
             # 1. Decode and verify the token signature
@@ -50,17 +51,32 @@ class ExecutionService:
                 algorithms=["HS256"]
             )
             
-            # 2. Extract the specific delegated scope (action:target)
             roles: List[str] = payload.get("roles", [])
             
-            # The last element of roles contains the specific action scope (e.g., 'teller,transfer:savings_account')
-            # Find the most specific scope claim
-            specific_scope = next((r for r in roles if ":" in r), None)
+            # 2. Extract the specific delegated scope (action:target)
+            # Find the element that contains the encoded scope (e.g., 'scope_data=...')
+            scope_claim = next((r for r in roles if r.startswith("scope_data=")), None)
             
-            if not specific_scope:
-                raise ValueError("Delegated scope not found in token.")
+            if not scope_claim:
+                raise ValueError("Delegated scope data ('scope_data=...') not found in token.")
             
-            action, target = specific_scope.split(":", 1)
+            # 3. Decode the Base64 value
+            encoded_value = scope_claim.split("=", 1)[1]
+            
+            # Base64 requires padding, which was stripped during encoding. Add it back.
+            padding_needed = 4 - (len(encoded_value) % 4)
+            padded_value = encoded_value + ('=' * padding_needed)
+            
+            decoded_scope_data = base64.urlsafe_b64decode(padded_value).decode('utf-8')
+            
+            # 4. Safely split the decoded data (e.g., 'transfer:tharun account no:67890')
+            parts = decoded_scope_data.split(":", 1)
+            
+            if len(parts) != 2:
+                 raise ValueError("Decoded scope data is malformed (expected action:target).")
+
+            action = parts[0]
+            target = parts[1]
 
             return AgentTokenClaims(
                 sub=payload.get("sub"),
@@ -74,7 +90,8 @@ class ExecutionService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired Agent Delegation Token."
             )
-        except (ValueError, IndexError, TypeError):
+        except (ValueError, IndexError, TypeError, base64.binascii.Error) as e:
+            # Catch all parsing and decoding errors gracefully
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Malformed Agent Token. Delegation scope is unreadable."
